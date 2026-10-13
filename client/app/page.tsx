@@ -19,6 +19,13 @@ type CitySummary = {
   average_category: string;
   highest: { date: string; aqi: number };
 };
+type ComparisonRow = {
+  city: string;
+  days: number;
+  average_aqi: number;
+  average_category: string;
+  highest_aqi: number;
+};
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 const pollutantMeta = [
@@ -40,6 +47,10 @@ export default function DashboardPage() {
   const [historyError, setHistoryError] = useState("");
   const [summary, setSummary] = useState<CitySummary | null>(null);
   const [summaryError, setSummaryError] = useState("");
+  const [compareCities, setCompareCities] = useState(["Delhi", "Mumbai"]);
+  const [comparison, setComparison] = useState<ComparisonRow[]>([]);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -130,6 +141,25 @@ export default function DashboardPage() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCompare(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCompareLoading(true);
+    setCompareError("");
+    try {
+      const params = new URLSearchParams();
+      compareCities.forEach((item) => params.append("cities", item));
+      const response = await fetch(`${apiBaseUrl}/api/compare?${params}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail ?? "Could not compare cities.");
+      setComparison(payload.cities);
+    } catch (requestError) {
+      setComparison([]);
+      setCompareError(requestError instanceof Error ? requestError.message : "Could not compare cities.");
+    } finally {
+      setCompareLoading(false);
     }
   }
 
@@ -242,9 +272,27 @@ export default function DashboardPage() {
         </section>
       )}
 
+      <section className="comparison-section" aria-labelledby="comparison-title">
+        <div className="section-heading">
+          <div><span className="section-label">06 / CITY COMPARISON</span><h2 id="comparison-title">Which city breathes easier?</h2></div>
+          <p>Compare average AQI across two cities in the dataset.</p>
+        </div>
+        <form className="comparison-form" onSubmit={handleCompare}>
+          <label><span>City one</span><select value={compareCities[0]} onChange={(event) => setCompareCities([event.target.value, compareCities[1]])}>{cities.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label><span>City two</span><select value={compareCities[1]} onChange={(event) => setCompareCities([compareCities[0], event.target.value])}>{cities.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <button type="submit" className="secondary-button" disabled={compareLoading}>{compareLoading ? "Comparing..." : "Compare cities"}</button>
+        </form>
+        {compareError && <p className="error-message" role="alert">{compareError}</p>}
+        {comparison.length > 0 && <div className="comparison-list">
+          {comparison.map((item, index) => <article className="comparison-row" key={item.city}>
+            <span className="rank">0{index + 1}</span><strong>{item.city}</strong><span className="comparison-category">{item.average_category}</span><span className="comparison-aqi">{item.average_aqi}<small> avg AQI</small></span>
+          </article>)}
+        </div>}
+      </section>
+
       <section className="insight-section" id="pollutants">
         <div className="section-heading">
-          <div><span className="section-label">06 / HISTORICAL TREND</span><h2>Air over time.</h2></div>
+          <div><span className="section-label">07 / HISTORICAL TREND</span><h2>Air over time.</h2></div>
           <p>{report ? `The latest ${history.length} recorded AQI days for ${report.city}.` : "Run a lookup to load a report from the AQI API."}</p>
         </div>
         {history.length > 1 ? (

@@ -117,3 +117,30 @@ def get_history(
     ]
 
     return {"city": str(matches.iloc[0]["City"]), "points": points}
+
+
+@app.get("/api/compare")
+def compare_cities(
+    cities: list[str] = Query(..., description="Two to six city names to compare"),
+) -> dict:
+    requested_cities = list(dict.fromkeys(city.strip() for city in cities if city.strip()))
+    if len(requested_cities) < 2 or len(requested_cities) > 6:
+        raise HTTPException(status_code=400, detail="Choose between 2 and 6 cities to compare")
+
+    rows = []
+    for requested_city in requested_cities:
+        matches = DATAFRAME[DATAFRAME["City"].str.casefold() == requested_city.casefold()]
+        if matches.empty:
+            raise HTTPException(status_code=404, detail=f"Unknown city: {requested_city}")
+        highest = matches.loc[matches["AQI"].idxmax()]
+        average_aqi = float(matches["AQI"].mean())
+        rows.append({
+            "city": str(matches.iloc[0]["City"]),
+            "days": int(len(matches)),
+            "average_aqi": round(average_aqi, 2),
+            "average_category": get_aqi_category(average_aqi),
+            "highest_aqi": float(highest["AQI"]),
+        })
+
+    rows.sort(key=lambda row: row["average_aqi"], reverse=True)
+    return {"cities": rows}

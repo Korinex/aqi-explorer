@@ -73,3 +73,17 @@ def test_summary_endpoint_returns_city_insights():
     assert payload["days"] > 0
     assert payload["average_aqi"] > 0
     assert payload["highest"]["aqi"] >= payload["average_aqi"]
+
+
+def test_compare_endpoint_ranks_requested_cities():
+    response = client.get("/api/compare", params=[("cities", "Delhi"), ("cities", "Mumbai")])
+    assert response.status_code == 200
+    rows = response.json()["cities"]
+    assert len(rows) == 2
+    assert rows[0]["average_aqi"] >= rows[1]["average_aqi"]
+    assert {row["city"] for row in rows} == {"Delhi", "Mumbai"}
+
+
+def test_compare_endpoint_requires_two_known_cities():
+    response = client.get("/api/compare", params={"cities": "Delhi"})
+    assert response.status_code == 400
