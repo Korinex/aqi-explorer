@@ -31,6 +31,23 @@ including AQI, PM2.5, PM10, NO2, CO, SO2, O3 and other pollutants.
 
 ## Project structure
 
+```text
+aqi-explorer/
+├── data/
+├── notebooks/
+│   ├── part1_core.ipynb
+│   ├── part2_structures.ipynb
+│   ├── part3_numpy_cleaning.ipynb
+│   └── part4_pandas.ipynb
+├── reports/
+│   └── Report.pdf
+└── src/
+    └── aqi_core/
+        ├── __init__.py
+        ├── categories.py
+        └── dataset.py
+```
+
 The platform will gradually be developed in the following stages:
 
 1. Data analysis foundation
