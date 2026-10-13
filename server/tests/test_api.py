@@ -63,3 +63,13 @@ def test_history_endpoint_returns_ordered_points():
 def test_history_endpoint_rejects_unknown_city():
     response = client.get("/api/history", params={"city": "Atlantis"})
     assert response.status_code == 404
+
+
+def test_summary_endpoint_returns_city_insights():
+    response = client.get("/api/summary", params={"city": "Delhi"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["city"] == "Delhi"
+    assert payload["days"] > 0
+    assert payload["average_aqi"] > 0
+    assert payload["highest"]["aqi"] >= payload["average_aqi"]

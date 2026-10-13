@@ -12,6 +12,13 @@ type AqiReport = {
 };
 
 type HistoryPoint = { date: string; aqi: number };
+type CitySummary = {
+  city: string;
+  days: number;
+  average_aqi: number;
+  average_category: string;
+  highest: { date: string; aqi: number };
+};
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 const pollutantMeta = [
@@ -31,6 +38,8 @@ export default function DashboardPage() {
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
+  const [summary, setSummary] = useState<CitySummary | null>(null);
+  const [summaryError, setSummaryError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,6 +83,27 @@ export default function DashboardPage() {
     }
 
     void loadHistory();
+  }, [report]);
+
+  useEffect(() => {
+    if (!report) return;
+    const selectedCity = report.city;
+
+    async function loadSummary() {
+      setSummaryError("");
+      try {
+        const params = new URLSearchParams({ city: selectedCity });
+        const response = await fetch(`${apiBaseUrl}/api/summary?${params}`);
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail ?? "Could not load city summary.");
+        setSummary(payload);
+      } catch (requestError) {
+        setSummary(null);
+        setSummaryError(requestError instanceof Error ? requestError.message : "Could not load city summary.");
+      }
+    }
+
+    void loadSummary();
   }, [report]);
 
   async function handleLookup(event: FormEvent<HTMLFormElement>) {
@@ -191,6 +221,18 @@ export default function DashboardPage() {
               })}
             </div>
           </section>
+
+          <section className="summary-section" aria-labelledby="summary-title">
+            <div className="section-heading">
+              <div><span className="section-label">05 / CITY SNAPSHOT</span><h2 id="summary-title">The bigger picture.</h2></div>
+              <p>{summary ? `A quick read on ${summary.city} across the full dataset.` : summaryError || "Loading city summary..."}</p>
+            </div>
+            {summary && <div className="summary-grid">
+              <article className="summary-card"><span className="section-label">AVERAGE AQI</span><strong>{summary.average_aqi}</strong><span className="summary-note">{summary.average_category}</span></article>
+              <article className="summary-card"><span className="section-label">RECORDED DAYS</span><strong>{summary.days.toLocaleString()}</strong><span className="summary-note">with known AQI</span></article>
+              <article className="summary-card accent"><span className="section-label">WORST DAY</span><strong>{Math.round(summary.highest.aqi)}</strong><span className="summary-note">{summary.highest.date}</span></article>
+            </div>}
+          </section>
         </>
       ) : (
         <section className="empty-state" aria-live="polite">
@@ -202,7 +244,7 @@ export default function DashboardPage() {
 
       <section className="insight-section" id="pollutants">
         <div className="section-heading">
-          <div><span className="section-label">05 / HISTORICAL TREND</span><h2>Air over time.</h2></div>
+          <div><span className="section-label">06 / HISTORICAL TREND</span><h2>Air over time.</h2></div>
           <p>{report ? `The latest ${history.length} recorded AQI days for ${report.city}.` : "Run a lookup to load a report from the AQI API."}</p>
         </div>
         {history.length > 1 ? (
