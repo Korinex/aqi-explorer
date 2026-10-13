@@ -98,3 +98,22 @@ def get_summary(
             "aqi": float(highest["AQI"]),
         },
     }
+
+
+@app.get("/api/history")
+def get_history(
+    city: str = Query(..., min_length=2, description="City name, for example Delhi"),
+    limit: int = Query(120, ge=12, le=1000, description="Maximum number of recent records"),
+) -> dict:
+    matches = DATAFRAME[DATAFRAME["City"].str.casefold() == city.strip().casefold()]
+
+    if matches.empty:
+        raise HTTPException(status_code=404, detail=f"Unknown city: {city.strip()}")
+
+    recent = matches.sort_values("Date").tail(limit)
+    points = [
+        {"date": row["Date"].strftime("%Y-%m-%d"), "aqi": float(row["AQI"])}
+        for _, row in recent.iterrows()
+    ]
+
+    return {"city": str(matches.iloc[0]["City"]), "points": points}

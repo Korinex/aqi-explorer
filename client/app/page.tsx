@@ -11,6 +11,8 @@ type AqiReport = {
   pollutants: Record<string, number | null>;
 };
 
+type HistoryPoint = { date: string; aqi: number };
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 const pollutantMeta = [
   { key: "PM2.5", name: "Fine particles", unit: "µg/m³", reference: 150 },
@@ -26,6 +28,9 @@ export default function DashboardPage() {
   const [city, setCity] = useState("Delhi");
   const [date, setDate] = useState("2019-05-01");
   const [report, setReport] = useState<AqiReport | null>(null);
+  const [history, setHistory] = useState<HistoryPoint[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -46,6 +51,30 @@ export default function DashboardPage() {
 
     void loadCities();
   }, []);
+
+  useEffect(() => {
+    if (!report) return;
+    const selectedCity = report.city;
+
+    async function loadHistory() {
+      setHistoryLoading(true);
+      setHistoryError("");
+      try {
+        const params = new URLSearchParams({ city: selectedCity, limit: "120" });
+        const response = await fetch(`${apiBaseUrl}/api/history?${params}`);
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail ?? "Could not load history.");
+        setHistory(payload.points);
+      } catch (requestError) {
+        setHistory([]);
+        setHistoryError(requestError instanceof Error ? requestError.message : "Could not load history.");
+      } finally {
+        setHistoryLoading(false);
+      }
+    }
+
+    void loadHistory();
+  }, [report]);
 
   async function handleLookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -173,10 +202,35 @@ export default function DashboardPage() {
 
       <section className="insight-section" id="pollutants">
         <div className="section-heading">
-          <div><span className="section-label">05 / EXPLORE THE DATA</span><h2>More than a number.</h2></div>
-          <p>{report ? "Pollutant breakdown and historical trends are the next layer of the platform." : "Run a lookup to load a report from the AQI API."}</p>
+          <div><span className="section-label">05 / HISTORICAL TREND</span><h2>Air over time.</h2></div>
+          <p>{report ? `The latest ${history.length} recorded AQI days for ${report.city}.` : "Run a lookup to load a report from the AQI API."}</p>
         </div>
-        <div className="chart-placeholder"><div className="chart-lines"><span /><span /><span /><span /></div><div className="placeholder-message"><strong>Historical trend chart</strong><span>Next milestone: add real pollutant and trend visualizations</span></div></div>
+        {history.length > 1 ? (
+          <div className="history-chart" aria-label={`Historical AQI trend for ${report?.city}`}>
+            {(() => {
+              const values = history.map((point) => point.aqi);
+              const min = Math.min(...values);
+              const max = Math.max(...values);
+              const spread = max - min || 1;
+              const chartPoints = history.map((point, index) => {
+                const x = (index / (history.length - 1)) * 900;
+                const y = 220 - ((point.aqi - min) / spread) * 180;
+                return `${x},${y}`;
+              }).join(" ");
+              return <>
+                <svg viewBox="0 0 900 260" role="img" aria-label="AQI line chart">
+                  <line x1="0" y1="40" x2="900" y2="40" className="chart-grid-line" />
+                  <line x1="0" y1="130" x2="900" y2="130" className="chart-grid-line" />
+                  <line x1="0" y1="220" x2="900" y2="220" className="chart-grid-line" />
+                  <polyline points={chartPoints} className="aqi-line" />
+                </svg>
+                <div className="chart-labels"><span>{history[0].date}</span><span>Low {Math.round(min)} · High {Math.round(max)}</span><span>{history[history.length - 1].date}</span></div>
+              </>;
+            })()}
+          </div>
+        ) : (
+          <div className="chart-placeholder"><div className="chart-lines"><span /><span /><span /><span /></div><div className="placeholder-message"><strong>{historyLoading ? "Loading historical data..." : "Historical trend unavailable"}</strong><span>{historyError || "Run a lookup to load this city’s history."}</span></div></div>
+        )}
       </section>
 
       <footer><span>AQI EXPLORER / CLASS PROJECT</span><span>Built from daily city-level air-quality data</span></footer>

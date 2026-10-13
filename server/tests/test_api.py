@@ -48,3 +48,18 @@ def test_aqi_lookup_rejects_invalid_date():
 def test_aqi_lookup_returns_not_found_for_unknown_record():
     response = client.get("/api/aqi", params={"city": "Atlantis", "date": "2019-05-01"})
     assert response.status_code == 404
+
+
+def test_history_endpoint_returns_ordered_points():
+    response = client.get("/api/history", params={"city": "Delhi", "limit": 12})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["city"] == "Delhi"
+    assert len(payload["points"]) == 12
+    assert payload["points"][0]["date"] < payload["points"][-1]["date"]
+    assert isinstance(payload["points"][-1]["aqi"], float)
+
+
+def test_history_endpoint_rejects_unknown_city():
+    response = client.get("/api/history", params={"city": "Atlantis"})
+    assert response.status_code == 404
