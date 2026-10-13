@@ -12,6 +12,14 @@ type AqiReport = {
 };
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const pollutantMeta = [
+  { key: "PM2.5", name: "Fine particles", unit: "µg/m³", reference: 150 },
+  { key: "PM10", name: "Coarse particles", unit: "µg/m³", reference: 250 },
+  { key: "NO2", name: "Nitrogen dioxide", unit: "µg/m³", reference: 200 },
+  { key: "CO", name: "Carbon monoxide", unit: "mg/m³", reference: 10 },
+  { key: "SO2", name: "Sulfur dioxide", unit: "µg/m³", reference: 80 },
+  { key: "O3", name: "Ozone", unit: "µg/m³", reference: 180 },
+];
 
 export default function DashboardPage() {
   const [cities, setCities] = useState<string[]>(["Delhi"]);
@@ -114,24 +122,47 @@ export default function DashboardPage() {
       </section>
 
       {report ? (
-        <section className="report-grid" aria-label="AQI report">
-          <article className="aqi-card">
-            <div className="card-topline"><span className="section-label">02 / DAILY READING</span><span className="card-date">{report.date}</span></div>
-            <p className="city-name">{report.city}</p>
-            <div className="aqi-number">{Math.round(report.aqi)}</div>
-            <div className="aqi-category"><span className="category-dot" /> {report.category}</div>
-            <div className="scale"><span /><span /><span /><span className="active" /><span /></div>
-            <div className="scale-labels"><span>Good</span><span>Severe</span></div>
-          </article>
+        <>
+          <section className="report-grid" aria-label="AQI report">
+            <article className="aqi-card">
+              <div className="card-topline"><span className="section-label">02 / DAILY READING</span><span className="card-date">{report.date}</span></div>
+              <p className="city-name">{report.city}</p>
+              <div className="aqi-number">{Math.round(report.aqi)}</div>
+              <div className="aqi-category"><span className="category-dot" /> {report.category}</div>
+              <div className="scale"><span /><span /><span /><span className="active" /><span /></div>
+              <div className="scale-labels"><span>Good</span><span>Severe</span></div>
+            </article>
 
-          <article className="advice-card">
-            <span className="section-label">03 / HEALTH GUIDANCE</span>
-            <div className="advice-icon">✦</div>
-            <h2>Take it easy<br />outdoors today.</h2>
-            <p>{report.advice}</p>
-            <a href="#pollutants" className="text-link">See pollutant breakdown <span>→</span></a>
-          </article>
-        </section>
+            <article className="advice-card">
+              <span className="section-label">03 / HEALTH GUIDANCE</span>
+              <div className="advice-icon">✦</div>
+              <h2>Take it easy<br />outdoors today.</h2>
+              <p>{report.advice}</p>
+              <a href="#pollutants" className="text-link">See pollutant breakdown <span>→</span></a>
+            </article>
+          </section>
+
+          <section className="pollutant-section" aria-labelledby="pollutant-title">
+            <div className="section-heading">
+              <div><span className="section-label">04 / POLLUTANT BREAKDOWN</span><h2 id="pollutant-title">What&apos;s in the air.</h2></div>
+              <p>Measured values from {report.city} on {report.date}. Bars show each reading against a reference level.</p>
+            </div>
+            <div className="pollutant-grid">
+              {pollutantMeta.map((pollutant) => {
+                const value = report.pollutants[pollutant.key];
+                const percentage = value === null ? 0 : Math.min((value / pollutant.reference) * 100, 100);
+                return (
+                  <article className="pollutant-card" key={pollutant.key}>
+                    <div className="pollutant-topline"><span className="pollutant-name">{pollutant.key}</span><span className="pollutant-unit">{pollutant.unit}</span></div>
+                    <div className="pollutant-value">{value === null ? "—" : value.toFixed(1)}</div>
+                    <p>{pollutant.name}</p>
+                    <div className="pollutant-track"><span style={{ width: `${percentage}%` }} /></div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </>
       ) : (
         <section className="empty-state" aria-live="polite">
           <span className="section-label">02 / DAILY READING</span>
@@ -142,7 +173,7 @@ export default function DashboardPage() {
 
       <section className="insight-section" id="pollutants">
         <div className="section-heading">
-          <div><span className="section-label">04 / EXPLORE THE DATA</span><h2>More than a number.</h2></div>
+          <div><span className="section-label">05 / EXPLORE THE DATA</span><h2>More than a number.</h2></div>
           <p>{report ? "Pollutant breakdown and historical trends are the next layer of the platform." : "Run a lookup to load a report from the AQI API."}</p>
         </div>
         <div className="chart-placeholder"><div className="chart-lines"><span /><span /><span /><span /></div><div className="placeholder-message"><strong>Historical trend chart</strong><span>Next milestone: add real pollutant and trend visualizations</span></div></div>
