@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type AqiReport = {
   aqi: number;
@@ -11,15 +11,33 @@ type AqiReport = {
   pollutants: Record<string, number | null>;
 };
 
-const cities = ["Delhi", "Mumbai", "Bengaluru", "Chennai", "Kolkata"];
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 export default function DashboardPage() {
+  const [cities, setCities] = useState<string[]>(["Delhi"]);
   const [city, setCity] = useState("Delhi");
   const [date, setDate] = useState("2019-05-01");
   const [report, setReport] = useState<AqiReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadCities() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/cities`);
+        if (!response.ok) throw new Error("Could not load cities.");
+        const payload: { cities: string[] } = await response.json();
+        setCities(payload.cities);
+        if (payload.cities.length > 0 && !payload.cities.includes("Delhi")) {
+          setCity(payload.cities[0]);
+        }
+      } catch {
+        setError("Could not load the city list. Check that the API is running.");
+      }
+    }
+
+    void loadCities();
+  }, []);
 
   async function handleLookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
