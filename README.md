@@ -14,6 +14,8 @@ The initial version contains:
 - AQI category and health-advice logic
 - The original `city_day.csv` dataset
 - The project report
+- A FastAPI backend with city/date lookup and summary endpoints
+- A Next.js dashboard connected to the AQI lookup endpoint
 
 ## Planned platform features
 
@@ -41,6 +43,12 @@ aqi-explorer/
 │   └── part4_pandas.ipynb
 ├── reports/
 │   └── Report.pdf
+├── server/
+│   ├── app/
+│   └── tests/
+├── client/
+│   ├── app/
+│   └── public/
 └── src/
     └── aqi_core/
         ├── __init__.py
@@ -53,6 +61,31 @@ The platform will gradually be developed in the following stages:
 1. Data analysis foundation
 2. Reusable Python AQI logic
 3. Backend API
-4. Frontend dashboard
-5. Charts and comparison tools
-6. Testing and deployment
+4. Frontend dashboard shell
+5. Connect dashboard to the backend API
+6. Add pollutant and historical trend visualizations
+7. Add city comparison tools
+8. Testing and deployment
+
+## Run locally
+
+Start the backend from the project root:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r server/requirements.txt
+uvicorn server.app.main:app --reload
+```
+
+In a second terminal, start the frontend:
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. The frontend uses
+`NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` by default. Copy
+`client/.env.example` to `client/.env.local` if you need to override it.

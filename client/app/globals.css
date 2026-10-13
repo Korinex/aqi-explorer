@@ -25,7 +25,12 @@ label { display: flex; flex-direction: column; gap: 8px; }
 label span { color: var(--muted); font: 500 10px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
 select, input { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: 600 14px Manrope, sans-serif; padding: 14px; }
 .primary-button { background: var(--ink); border: 0; border-radius: 8px; color: white; cursor: pointer; font: 700 13px Manrope, sans-serif; padding: 15px; text-align: left; }
+.primary-button:disabled { cursor: wait; opacity: .65; }
 .primary-button span { float: right; color: var(--mint); font-size: 17px; }
+.error-message { color: #a94c43; font-size: 12px; margin: 16px 0 0; }
+.empty-state { border: 1px dashed #cbd5c6; border-radius: 16px; margin-top: 20px; min-height: 365px; padding: 30px; }
+.empty-state h2 { margin-top: 100px; }
+.empty-state p { color: var(--muted); font-size: 14px; }
 .report-grid { display: grid; gap: 20px; grid-template-columns: 1.1fr .9fr; margin-top: 20px; }
 .aqi-card, .advice-card { border-radius: 16px; min-height: 365px; padding: 30px; }
 .aqi-card { background: var(--ink); color: white; }
