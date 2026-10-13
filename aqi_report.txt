@@ -1,0 +1,32 @@
+----- AIR QUALITY REPORT -----
+City     : Delhi
+Date     : 2019-05-01
+AQI      : 320
+Category : Very Poor
+Advice   : Stay indoors as much as possible. Wear a mask outside.
+------------------------------
+
+----- AIR QUALITY REPORT -----
+City     : Delhi
+Date     : 2019-05-01
+AQI      : 320
+Category : Very Poor
+Advice   : Stay indoors as much as possible. Wear a mask outside.
+------------------------------
+
+----- AIR QUALITY REPORT -----
+City     : Delhi
+Date     : 2019-05-01
+AQI      : 320
+Category : Very Poor
+Advice   : Stay indoors as much as possible. Wear a mask outside.
+------------------------------
+
+----- AIR QUALITY REPORT -----
+City     : Delhi
+Date     : 2019-05-01
+AQI      : 320
+Category : Very Poor
+Advice   : Stay indoors as much as possible. Wear a mask outside.
+------------------------------
+
