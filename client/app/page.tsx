@@ -115,7 +115,7 @@ export default function DashboardPage() {
       setHistoryLoading(true);
       setHistoryError("");
       try {
-        const params = new URLSearchParams({ city: selectedCity, limit: "120" });
+        const params = new URLSearchParams({ city: selectedCity, limit: "120", through: report.date });
         const response = await fetch(`${apiBaseUrl}/api/history?${params}`);
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.detail ?? "Could not load history.");

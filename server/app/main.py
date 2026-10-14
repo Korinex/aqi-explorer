@@ -104,11 +104,19 @@ def get_summary(
 def get_history(
     city: str = Query(..., min_length=2, description="City name, for example Delhi"),
     limit: int = Query(120, ge=12, le=1000, description="Maximum number of recent records"),
+    through: str | None = Query(None, description="Include records on or before this date (YYYY-MM-DD)"),
 ) -> dict:
     matches = DATAFRAME[DATAFRAME["City"].str.casefold() == city.strip().casefold()]
 
     if matches.empty:
         raise HTTPException(status_code=404, detail=f"Unknown city: {city.strip()}")
+
+    if through is not None:
+        try:
+            through_date = pd.to_datetime(through, format="%Y-%m-%d")
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Through date must use YYYY-MM-DD format")
+        matches = matches[matches["Date"] <= through_date]
 
     recent = matches.sort_values("Date").tail(limit)
     points = [
