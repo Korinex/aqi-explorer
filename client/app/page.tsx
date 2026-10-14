@@ -36,6 +36,21 @@ const pollutantMeta = [
   { key: "SO2", name: "Sulfur dioxide", unit: "µg/m³", reference: 80 },
   { key: "O3", name: "Ozone", unit: "µg/m³", reference: 180 },
 ];
+const aqiCategories = ["Good", "Satisfactory", "Moderate", "Poor", "Very Poor", "Severe"];
+const aqiColors = ["#51a66f", "#a4bd4f", "#e6b84f", "#e78a45", "#d75c48", "#8e3942"];
+
+function categoryClass(category: string) {
+  return category.toLowerCase().replaceAll(" ", "-");
+}
+
+function categoryIndexForAqi(aqi: number) {
+  if (aqi <= 50) return 0;
+  if (aqi <= 100) return 1;
+  if (aqi <= 200) return 2;
+  if (aqi <= 300) return 3;
+  if (aqi <= 400) return 4;
+  return 5;
+}
 
 export default function DashboardPage() {
   const [cities, setCities] = useState<string[]>(["Delhi"]);
@@ -43,6 +58,7 @@ export default function DashboardPage() {
   const [date, setDate] = useState("2019-05-01");
   const [report, setReport] = useState<AqiReport | null>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
+  const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [summary, setSummary] = useState<CitySummary | null>(null);
@@ -53,6 +69,25 @@ export default function DashboardPage() {
   const [compareError, setCompareError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const selectedCategoryIndex = report ? aqiCategories.indexOf(report.category) : -1;
+
+  useEffect(() => {
+    const elements = document.querySelectorAll<HTMLElement>(".scroll-reveal");
+    if (!("IntersectionObserver" in window)) {
+      elements.forEach((element) => element.classList.add("is-visible"));
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -35px 0px" });
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [report, summary, history, comparison]);
 
   useEffect(() => {
     async function loadCities() {
@@ -184,7 +219,7 @@ export default function DashboardPage() {
         </p>
       </section>
 
-      <section className="search-panel" aria-labelledby="lookup-title">
+      <section className="search-panel scroll-reveal" aria-labelledby="lookup-title">
         <div className="panel-heading">
           <div>
             <span className="section-label">01 / LOOKUP</span>
@@ -203,7 +238,7 @@ export default function DashboardPage() {
             <span>Date</span>
             <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           </label>
-          <button type="submit" className="primary-button" disabled={loading}>
+          <button type="submit" className="primary-button" disabled={loading || cities.length === 0}>
             {loading ? "Loading..." : "View report"} <span>↗</span>
           </button>
         </form>
@@ -212,26 +247,28 @@ export default function DashboardPage() {
 
       {report ? (
         <>
-          <section className="report-grid" aria-label="AQI report">
+          <section className="report-grid scroll-reveal" aria-label="AQI report">
             <article className="aqi-card">
               <div className="card-topline"><span className="section-label">02 / DAILY READING</span><span className="card-date">{report.date}</span></div>
               <p className="city-name">{report.city}</p>
-              <div className="aqi-number">{Math.round(report.aqi)}</div>
-              <div className="aqi-category"><span className="category-dot" /> {report.category}</div>
-              <div className="scale"><span /><span /><span /><span className="active" /><span /></div>
-              <div className="scale-labels"><span>Good</span><span>Severe</span></div>
+              <div className="aqi-number" style={{ color: aqiColors[Math.max(0, selectedCategoryIndex)] }}>{Math.round(report.aqi)}</div>
+              <div className="aqi-category"><span className="category-dot" style={{ backgroundColor: aqiColors[Math.max(0, selectedCategoryIndex)] }} /> {report.category}</div>
+              <div className="scale" aria-label={`AQI category: ${report.category}`}>
+                {aqiCategories.map((category, index) => <span key={category} className={index === selectedCategoryIndex ? "active" : ""} style={{ backgroundColor: aqiColors[index] }} />)}
+              </div>
+              <div className="scale-labels"><span>Clean</span><span>Hazardous</span></div>
             </article>
 
             <article className="advice-card">
               <span className="section-label">03 / HEALTH GUIDANCE</span>
-              <div className="advice-icon">✦</div>
-              <h2>Take it easy<br />outdoors today.</h2>
-              <p>{report.advice}</p>
+              <div className="advice-topline"><span className="advice-icon">✦</span><span className={`advice-category ${categoryClass(report.category)}`}>{report.category} air</span></div>
+              <h2>What this means<br />for your health</h2>
+              <p className="advice-copy">{report.advice}</p>
               <a href="#pollutants" className="text-link">See pollutant breakdown <span>→</span></a>
             </article>
           </section>
 
-          <section className="pollutant-section" aria-labelledby="pollutant-title">
+          <section className="pollutant-section scroll-reveal" aria-labelledby="pollutant-title">
             <div className="section-heading">
               <div><span className="section-label">04 / POLLUTANT BREAKDOWN</span><h2 id="pollutant-title">What&apos;s in the air.</h2></div>
               <p>Measured values from {report.city} on {report.date}. Bars show each reading against a reference level.</p>
@@ -252,7 +289,7 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <section className="summary-section" aria-labelledby="summary-title">
+          <section className="summary-section scroll-reveal" aria-labelledby="summary-title">
             <div className="section-heading">
               <div><span className="section-label">05 / CITY SNAPSHOT</span><h2 id="summary-title">The bigger picture.</h2></div>
               <p>{summary ? `A quick read on ${summary.city} across the full dataset.` : summaryError || "Loading city summary..."}</p>
@@ -272,28 +309,31 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <section className="comparison-section" aria-labelledby="comparison-title">
+      <section className="comparison-section scroll-reveal" aria-labelledby="comparison-title">
         <div className="section-heading">
           <div><span className="section-label">06 / CITY COMPARISON</span><h2 id="comparison-title">Which city breathes easier?</h2></div>
-          <p>Compare average AQI across two cities in the dataset.</p>
+          <p>Lower is cleaner. Results are ranked from cleanest to most polluted using each city&apos;s full dataset average.</p>
         </div>
+        <div className="comparison-panel">
         <form className="comparison-form" onSubmit={handleCompare}>
           <label><span>City one</span><select value={compareCities[0]} onChange={(event) => setCompareCities([event.target.value, compareCities[1]])}>{cities.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label><span>City two</span><select value={compareCities[1]} onChange={(event) => setCompareCities([compareCities[0], event.target.value])}>{cities.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <button type="submit" className="secondary-button" disabled={compareLoading}>{compareLoading ? "Comparing..." : "Compare cities"}</button>
+          <label><span>City two</span><select value={compareCities[1]} onChange={(event) => setCompareCities([compareCities[0], event.target.value])}>{cities.map((item) => <option key={item} disabled={item === compareCities[0]}>{item}</option>)}</select></label>
+          <button type="submit" className="secondary-button" disabled={compareLoading || compareCities[0] === compareCities[1]}>{compareLoading ? "Comparing..." : "Compare cities"}</button>
         </form>
         {compareError && <p className="error-message" role="alert">{compareError}</p>}
         {comparison.length > 0 && <div className="comparison-list">
-          {comparison.map((item, index) => <article className="comparison-row" key={item.city}>
-            <span className="rank">0{index + 1}</span><strong>{item.city}</strong><span className="comparison-category">{item.average_category}</span><span className="comparison-aqi">{item.average_aqi}<small> avg AQI</small></span>
+          {[...comparison].sort((a, b) => a.average_aqi - b.average_aqi).map((item, index) => <article className={`comparison-row ${index === 0 ? "cleanest-row" : ""}`} key={item.city}>
+            <span className="rank">0{index + 1}</span><strong>{item.city}{index === 0 && <small className="cleanest-badge">Cleanest</small>}</strong><span className={`comparison-category ${categoryClass(item.average_category)}`}>{item.average_category}</span><div className="comparison-score"><span className="comparison-aqi">{item.average_aqi}<small> avg AQI</small></span><span className="comparison-track"><span style={{ width: `${Math.min(item.average_aqi / 5, 100)}%`, backgroundColor: aqiColors[Math.max(0, aqiCategories.indexOf(item.average_category))] }} /></span></div>
           </article>)}
         </div>}
+        {!comparison.length && !compareError && <p className="comparison-hint">Choose two cities to see which has cleaner air on average.</p>}
+        </div>
       </section>
 
-      <section className="insight-section" id="pollutants">
+      <section className="insight-section scroll-reveal" id="pollutants">
         <div className="section-heading">
           <div><span className="section-label">07 / HISTORICAL TREND</span><h2>Air over time.</h2></div>
-          <p>{report ? `The latest ${history.length} recorded AQI days for ${report.city}.` : "Run a lookup to load a report from the AQI API."}</p>
+          <p>{report ? `Daily AQI for ${report.city}. Higher points mean worse air; line colors and shaded bands show the category. Hover over the chart to inspect a reading.` : "Run a lookup to load a report from the AQI API."}</p>
         </div>
         {history.length > 1 ? (
           <div className="history-chart" aria-label={`Historical AQI trend for ${report?.city}`}>
@@ -301,20 +341,80 @@ export default function DashboardPage() {
               const values = history.map((point) => point.aqi);
               const min = Math.min(...values);
               const max = Math.max(...values);
-              const spread = max - min || 1;
-              const chartPoints = history.map((point, index) => {
-                const x = (index / (history.length - 1)) * 900;
-                const y = 220 - ((point.aqi - min) / spread) * 180;
-                return `${x},${y}`;
-              }).join(" ");
+              const chartMax = Math.max(500, Math.ceil(max / 100) * 100);
+              const chartTop = 24;
+              const chartBottom = 232;
+              const chartLeft = 70;
+              const chartRight = 940;
+              const yFor = (value: number) => chartBottom - (value / chartMax) * (chartBottom - chartTop);
+              const xFor = (index: number) => chartLeft + (index / (history.length - 1)) * (chartRight - chartLeft);
+              const latest = history[history.length - 1];
+              const dateTickCount = Math.min(6, history.length);
+              const dateTicks = Array.from({ length: dateTickCount }, (_, tickIndex) => Math.round(tickIndex * (history.length - 1) / (dateTickCount - 1)));
+              const hoveredPoint = hoveredPointIndex === null ? null : history[hoveredPointIndex];
+              const hoverX = hoveredPointIndex === null ? 0 : xFor(hoveredPointIndex);
+              const hoverY = hoveredPoint ? yFor(hoveredPoint.aqi) : 0;
+              const tooltipX = Math.max(chartLeft + 4, Math.min(hoverX + 12, chartRight - 178));
+              const tooltipY = Math.max(chartTop + 4, hoverY - 56);
               return <>
-                <svg viewBox="0 0 900 260" role="img" aria-label="AQI line chart">
-                  <line x1="0" y1="40" x2="900" y2="40" className="chart-grid-line" />
-                  <line x1="0" y1="130" x2="900" y2="130" className="chart-grid-line" />
-                  <line x1="0" y1="220" x2="900" y2="220" className="chart-grid-line" />
-                  <polyline points={chartPoints} className="aqi-line" />
+                <div className="chart-topline">
+                  <div className="chart-legend" aria-label="AQI category colors">
+                    {aqiCategories.map((category, index) => <span key={category}><i style={{ backgroundColor: aqiColors[index] }} />{category}</span>)}
+                  </div>
+                  <span className="latest-reading"><i style={{ backgroundColor: aqiColors[categoryIndexForAqi(latest.aqi)] }} />Latest <strong>{Math.round(latest.aqi)}</strong> · {aqiCategories[categoryIndexForAqi(latest.aqi)]}</span>
+                </div>
+                <svg
+                  viewBox="0 0 980 300"
+                  role="img"
+                  tabIndex={0}
+                  aria-label={`Historical AQI for ${report?.city}; vertical axis is AQI, horizontal axis is date. Move over the chart to inspect a date.`}
+                  onFocus={() => setHoveredPointIndex((index) => index ?? history.length - 1)}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                      event.preventDefault();
+                      setHoveredPointIndex((index) => Math.max(0, Math.min(history.length - 1, (index ?? history.length - 1) + (event.key === "ArrowRight" ? 1 : -1))));
+                    }
+                  }}
+                  onMouseMove={(event) => {
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    const svgX = ((event.clientX - bounds.left) / bounds.width) * 980;
+                    const ratio = Math.max(0, Math.min(1, (svgX - chartLeft) / (chartRight - chartLeft)));
+                    setHoveredPointIndex(Math.round(ratio * (history.length - 1)));
+                  }}
+                  onMouseLeave={() => setHoveredPointIndex(null)}
+                >
+                  {[
+                    { from: 0, to: 50, color: aqiColors[0] }, { from: 50, to: 100, color: aqiColors[1] },
+                    { from: 100, to: 200, color: aqiColors[2] }, { from: 200, to: 300, color: aqiColors[3] },
+                    { from: 300, to: 400, color: aqiColors[4] }, { from: 400, to: chartMax, color: aqiColors[5] },
+                  ].map((band) => <rect key={band.from} x={chartLeft} y={yFor(band.to)} width={chartRight - chartLeft} height={Math.max(0, yFor(band.from) - yFor(band.to))} fill={band.color} opacity=".09" />)}
+                  {Array.from({ length: chartMax / 100 + 1 }, (_, index) => index * 100).map((tick) => <g key={tick}>
+                    <line x1={chartLeft} y1={yFor(tick)} x2={chartRight} y2={yFor(tick)} className="chart-grid-line" />
+                    <text x={chartLeft - 12} y={yFor(tick) + 4} className="chart-axis-label" textAnchor="end">{tick}</text>
+                  </g>)}
+                  {dateTicks.map((index, tickNumber) => <g key={history[index].date}>
+                    <line x1={xFor(index)} y1={chartTop} x2={xFor(index)} y2={chartBottom} className="chart-date-grid-line" />
+                    <text x={xFor(index)} y="251" className="chart-date-label" textAnchor={tickNumber === 0 ? "start" : tickNumber === dateTicks.length - 1 ? "end" : "middle"}>{history[index].date.slice(5)}</text>
+                  </g>)}
+                  <text x="16" y="15" className="chart-axis-title">AQI</text>
+                  <text x={chartRight} y="289" className="chart-axis-title" textAnchor="end">DATE · MM-DD</text>
+                  {history.slice(1).map((point, index) => {
+                    const previous = history[index];
+                    const segmentCategory = categoryIndexForAqi((previous.aqi + point.aqi) / 2);
+                    return <line key={`${previous.date}-${point.date}`} x1={xFor(index)} y1={yFor(previous.aqi)} x2={xFor(index + 1)} y2={yFor(point.aqi)} stroke={aqiColors[segmentCategory]} className="aqi-segment" />;
+                  })}
+                  {history.map((point, index) => <circle key={point.date} cx={xFor(index)} cy={yFor(point.aqi)} r={index === history.length - 1 ? 5 : 2.2} fill={aqiColors[categoryIndexForAqi(point.aqi)]} className="chart-point">
+                    <title>{`${point.date}: AQI ${Math.round(point.aqi)} (${aqiCategories[categoryIndexForAqi(point.aqi)]})`}</title>
+                  </circle>)}
+                  {hoveredPoint && <g className="chart-hover-tooltip" pointerEvents="none">
+                    <line x1={hoverX} y1={chartTop} x2={hoverX} y2={chartBottom} className="chart-crosshair" />
+                    <circle cx={hoverX} cy={hoverY} r="7" fill={aqiColors[categoryIndexForAqi(hoveredPoint.aqi)]} className="chart-hover-point" />
+                    <rect x={tooltipX} y={tooltipY} width="170" height="46" rx="7" className="chart-tooltip-box" />
+                    <text x={tooltipX + 10} y={tooltipY + 17} className="chart-tooltip-date">{hoveredPoint.date}</text>
+                    <text x={tooltipX + 10} y={tooltipY + 35} className="chart-tooltip-value">AQI {Math.round(hoveredPoint.aqi)} · {aqiCategories[categoryIndexForAqi(hoveredPoint.aqi)]}</text>
+                  </g>}
                 </svg>
-                <div className="chart-labels"><span>{history[0].date}</span><span>Low {Math.round(min)} · High {Math.round(max)}</span><span>{history[history.length - 1].date}</span></div>
+                <div className="chart-labels"><span>{history[0].date}</span><span>{history.length} daily readings · Low {Math.round(min)} · High {Math.round(max)}</span><span>{history[history.length - 1].date}</span></div>
               </>;
             })()}
           </div>

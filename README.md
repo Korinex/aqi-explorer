@@ -73,7 +73,8 @@ Start the backend from the project root:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -r server/requirements.txt
 uvicorn server.app.main:app --reload
 ```
@@ -85,6 +86,8 @@ cd client
 npm install
 npm run dev
 ```
+
+Run `npm run typecheck` from `client/` to check the frontend TypeScript types.
 
 Open `http://localhost:3000`. The frontend uses
 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` by default. Copy
