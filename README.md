@@ -23,7 +23,7 @@ The backend reads the CSV when it starts and serves the dashboard through JSON e
 - Review a city's full-dataset average, number of recorded days, and highest AQI day.
 - Compare two cities by their average AQI across the dataset.
 - Explore up to 120 recent recorded AQI readings through the selected date. Hover over the chart to inspect a reading's date, AQI, and category.
-- Browse notebooks covering Python data structures, NumPy, Pandas, and data cleaning.
+- Browse Jupyter notebooks covering Python data structures, NumPy, Pandas, and data cleaning, with practical exercises for exploring and preparing air-quality data.
 
 ## Requirements
 
