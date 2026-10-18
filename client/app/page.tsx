@@ -53,9 +53,14 @@ function categoryIndexForAqi(aqi: number) {
 }
 
 export default function DashboardPage() {
-  const [cities, setCities] = useState<string[]>(["Delhi"]);
-  const [city, setCity] = useState("Delhi");
+  const [cities, setCities] = useState<string[]>([]);
+  const [city, setCity] = useState("");
   const [date, setDate] = useState("2019-05-01");
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [datesLoading, setDatesLoading] = useState(false);
+  const [datesError, setDatesError] = useState("");
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState("2019-05");
   const [report, setReport] = useState<AqiReport | null>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
@@ -63,7 +68,7 @@ export default function DashboardPage() {
   const [historyError, setHistoryError] = useState("");
   const [summary, setSummary] = useState<CitySummary | null>(null);
   const [summaryError, setSummaryError] = useState("");
-  const [compareCities, setCompareCities] = useState(["Delhi", "Mumbai"]);
+  const [compareCities, setCompareCities] = useState<string[]>([]);
   const [comparison, setComparison] = useState<ComparisonRow[]>([]);
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError] = useState("");
@@ -96,9 +101,12 @@ export default function DashboardPage() {
         if (!response.ok) throw new Error("Could not load cities.");
         const payload: { cities: string[] } = await response.json();
         setCities(payload.cities);
-        if (payload.cities.length > 0 && !payload.cities.includes("Delhi")) {
-          setCity(payload.cities[0]);
-        }
+        const initialCity = payload.cities.includes("Delhi") ? "Delhi" : payload.cities[0] ?? "";
+        setCity(initialCity);
+        const initialComparisonCities = ["Delhi", "Mumbai"].every((item) => payload.cities.includes(item))
+          ? ["Delhi", "Mumbai"]
+          : payload.cities.slice(0, 2);
+        setCompareCities(initialComparisonCities);
       } catch {
         setError("Could not load the city list. Check that the API is running.");
       }
@@ -106,6 +114,46 @@ export default function DashboardPage() {
 
     void loadCities();
   }, []);
+
+  useEffect(() => {
+    if (!city) {
+      setAvailableDates([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    async function loadDates() {
+      setDatesLoading(true);
+      setDatesError("");
+      try {
+        const params = new URLSearchParams({ city });
+        const response = await fetch(`${apiBaseUrl}/api/dates?${params}`, { signal: controller.signal });
+        const payload: { dates: string[]; detail?: string } = await response.json();
+        if (!response.ok) throw new Error(payload.detail ?? "Could not load dates.");
+        if (payload.dates.length === 0) throw new Error(`No dataset dates found for ${city}.`);
+        setAvailableDates(payload.dates);
+        const selectedDate = payload.dates.includes(date)
+          ? date
+          : payload.dates.reduce((nearest, candidate) =>
+              Math.abs(Date.parse(`${candidate}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`))
+                < Math.abs(Date.parse(`${nearest}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`))
+                ? candidate
+                : nearest
+            , payload.dates[0]);
+        setDate(selectedDate);
+        setCalendarMonth(selectedDate.slice(0, 7));
+      } catch (requestError) {
+        if (controller.signal.aborted) return;
+        setAvailableDates([]);
+        setDatesError(requestError instanceof Error ? requestError.message : "Could not load dates.");
+      } finally {
+        if (!controller.signal.aborted) setDatesLoading(false);
+      }
+    }
+
+    void loadDates();
+    return () => controller.abort();
+  }, [city]);
 
   useEffect(() => {
     if (!report) return;
@@ -199,6 +247,29 @@ export default function DashboardPage() {
     }
   }
 
+  const [year, month] = calendarMonth.split("-").map(Number);
+  const monthStart = new Date(Date.UTC(year, month - 1, 1));
+  const monthLength = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const firstWeekday = monthStart.getUTCDay();
+  const availableMonths = [...new Set(availableDates.map((item) => item.slice(0, 7)))];
+  const currentMonthIndex = availableMonths.indexOf(calendarMonth);
+  const firstAvailableMonth = availableMonths[0] ?? calendarMonth;
+  const lastAvailableMonth = availableMonths[availableMonths.length - 1] ?? calendarMonth;
+  const availableDateSet = new Set(availableDates);
+  const formattedDate = date
+    ? new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC",
+      })
+    : "Choose a date";
+
+  function moveCalendarMonth(offset: number) {
+    const nextMonth = availableMonths[currentMonthIndex + offset];
+    if (nextMonth) setCalendarMonth(nextMonth);
+  }
+
   return (
     <main className="page-shell">
       <nav className="topbar">
@@ -231,19 +302,61 @@ export default function DashboardPage() {
         <form className="form-row" onSubmit={handleLookup}>
           <label>
             <span>City</span>
-            <select value={city} onChange={(event) => setCity(event.target.value)}>
+            <select value={city} onChange={(event) => {
+              setCity(event.target.value);
+              setCalendarOpen(false);
+            }} disabled={cities.length === 0}>
               {cities.map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
-          <label>
+          <label className="date-picker-field">
             <span>Date</span>
-            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+            <button
+              type="button"
+              className="date-picker-trigger"
+              aria-haspopup="dialog"
+              aria-expanded={calendarOpen}
+              disabled={datesLoading || availableDates.length === 0}
+              onClick={() => setCalendarOpen(!calendarOpen)}
+            >
+              {datesLoading ? "Loading dates..." : formattedDate}
+            </button>
+            {calendarOpen && <div className="calendar-popover" role="dialog" aria-label="Choose an available dataset date">
+              <div className="calendar-header">
+                <button type="button" aria-label="Previous month" disabled={calendarMonth <= firstAvailableMonth} onClick={() => moveCalendarMonth(-1)}>‹</button>
+                <strong>{monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" })}</strong>
+                <button type="button" aria-label="Next month" disabled={calendarMonth >= lastAvailableMonth} onClick={() => moveCalendarMonth(1)}>›</button>
+              </div>
+              <div className="calendar-grid calendar-weekdays" aria-hidden="true">
+                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((weekday) => <span key={weekday}>{weekday}</span>)}
+              </div>
+              <div className="calendar-grid">
+                {Array.from({ length: firstWeekday }, (_, index) => <span key={`empty-${index}`} />)}
+                {Array.from({ length: monthLength }, (_, index) => {
+                  const day = String(index + 1).padStart(2, "0");
+                  const monthString = String(month).padStart(2, "0");
+                  const candidateDate = `${year}-${monthString}-${day}`;
+                  const isAvailable = availableDateSet.has(candidateDate);
+                  return <button
+                    key={candidateDate}
+                    type="button"
+                    disabled={!isAvailable}
+                    aria-pressed={date === candidateDate}
+                    onClick={() => {
+                      setDate(candidateDate);
+                      setCalendarOpen(false);
+                    }}
+                  >{index + 1}</button>;
+                })}
+              </div>
+            </div>}
           </label>
-          <button type="submit" className="primary-button" disabled={loading || cities.length === 0}>
+          <button type="submit" className="primary-button" disabled={loading || datesLoading || cities.length === 0 || !date}>
             {loading ? "Loading..." : "View report"} <span>↗</span>
           </button>
         </form>
         {error && <p className="error-message" role="alert">{error}</p>}
+        {datesError && <p className="error-message" role="alert">{datesError}</p>}
       </section>
 
       {report ? (
@@ -317,9 +430,9 @@ export default function DashboardPage() {
         </div>
         <div className="comparison-panel">
         <form className="comparison-form" onSubmit={handleCompare}>
-          <label><span>City one</span><select value={compareCities[0]} onChange={(event) => setCompareCities([event.target.value, compareCities[1]])}>{cities.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label><span>City two</span><select value={compareCities[1]} onChange={(event) => setCompareCities([compareCities[0], event.target.value])}>{cities.map((item) => <option key={item} disabled={item === compareCities[0]}>{item}</option>)}</select></label>
-          <button type="submit" className="secondary-button" disabled={compareLoading || compareCities[0] === compareCities[1]}>{compareLoading ? "Comparing..." : "Compare cities"}</button>
+          <label><span>City one</span><select value={compareCities[0] ?? ""} onChange={(event) => setCompareCities([event.target.value, compareCities[1] ?? ""])} disabled={cities.length === 0}>{cities.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label><span>City two</span><select value={compareCities[1] ?? compareCities[0] ?? ""} onChange={(event) => setCompareCities([compareCities[0] ?? "", event.target.value])} disabled={cities.length < 2}>{cities.map((item) => <option key={item} disabled={item === compareCities[0]}>{item}</option>)}</select></label>
+          <button type="submit" className="secondary-button" disabled={compareLoading || cities.length < 2 || compareCities[0] === compareCities[1]}>{compareLoading ? "Comparing..." : "Compare cities"}</button>
         </form>
         {compareError && <p className="error-message" role="alert">{compareError}</p>}
         {comparison.length > 0 && <div className="comparison-list">
