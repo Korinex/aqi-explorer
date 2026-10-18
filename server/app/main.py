@@ -38,6 +38,18 @@ def list_cities() -> dict[str, list[str]]:
     return {"cities": cities}
 
 
+@app.get("/api/dates")
+def list_dates(
+    city: str = Query(..., min_length=2, description="City name, for example Delhi"),
+) -> dict[str, list[str]]:
+    matches = DATAFRAME[DATAFRAME["City"].str.casefold() == city.strip().casefold()]
+    if matches.empty:
+        raise HTTPException(status_code=404, detail=f"Unknown city: {city.strip()}")
+
+    dates = sorted(matches["Date"].drop_duplicates().dt.strftime("%Y-%m-%d").tolist())
+    return {"dates": dates}
+
+
 @app.get("/api/aqi")
 def get_aqi(
     city: str = Query(..., min_length=2, description="City name, for example Delhi"),

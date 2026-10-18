@@ -29,6 +29,20 @@ def test_cities_endpoint_contains_known_city():
     assert "Delhi" in response.json()["cities"]
 
 
+def test_dates_endpoint_returns_only_dates_for_the_city_in_dataset():
+    response = client.get("/api/dates", params={"city": "Delhi"})
+    assert response.status_code == 200
+    dates = response.json()["dates"]
+    assert dates == sorted(set(dates))
+    assert "2019-05-01" in dates
+    assert "2015-01-01" in dates
+
+
+def test_dates_endpoint_returns_not_found_for_unknown_city():
+    response = client.get("/api/dates", params={"city": "Atlantis"})
+    assert response.status_code == 404
+
+
 def test_aqi_lookup_returns_report():
     response = client.get("/api/aqi", params={"city": "Delhi", "date": "2019-05-01"})
     assert response.status_code == 200

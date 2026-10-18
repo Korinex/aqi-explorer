@@ -123,12 +123,27 @@ footer { border-top: 1px solid var(--line); display: flex; justify-content: spac
 .chart-tooltip-date { fill: #c9f277; font: 10px 'DM Mono', monospace; }
 .chart-tooltip-value { fill: #fff; font: 700 12px Manrope, sans-serif; }
 .scroll-reveal { opacity: 1; transform: none; }
+.date-picker-field { position: relative; }
+.date-picker-trigger { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); cursor: pointer; font: 600 14px Manrope, sans-serif; min-height: 48px; padding: 14px; text-align: left; }
+.date-picker-trigger:disabled { cursor: wait; opacity: .65; }
+.calendar-popover { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(24,33,30,.16); left: 0; padding: 12px; position: absolute; top: calc(100% + 8px); width: 280px; z-index: 5; }
+.calendar-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 10px; }
+.calendar-header strong { font-size: 13px; }
+.calendar-header button, .calendar-grid button { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--ink); cursor: pointer; display: flex; font: 600 12px Manrope, sans-serif; height: 32px; justify-content: center; padding: 0; width: 32px; }
+.calendar-header button { font-size: 20px; }
+.calendar-header button:disabled, .calendar-grid button:disabled { color: #bdc5ba; cursor: default; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); justify-items: center; }
+.calendar-grid span { align-items: center; color: var(--muted); display: flex; font: 10px 'DM Mono', monospace; height: 32px; justify-content: center; }
+.calendar-grid button:hover:not(:disabled) { background: #e9eddf; }
+.calendar-grid button[aria-pressed="true"] { background: var(--ink); color: white; }
+.calendar-weekdays { margin-bottom: 3px; }
 @media (prefers-reduced-motion: no-preference) {
   .scroll-reveal { opacity: 0; transform: translateY(18px); transition: opacity .65s ease, transform .65s cubic-bezier(.2,.7,.2,1); }
   .scroll-reveal.is-visible { opacity: 1; transform: translateY(0); }
   .report-grid.scroll-reveal, .search-panel.scroll-reveal { transition-delay: .06s; }
 }
 @media (max-width: 720px) {
+  .calendar-popover { width: min(280px, calc(100vw - 72px)); }
   .comparison-panel { padding: 18px; }
   .comparison-row { grid-template-columns: 28px 1fr 100px; }
   .comparison-score { grid-column: 2 / -1; }

@@ -2,7 +2,7 @@
 
 AQI Explorer is a class project for exploring historical air-quality measurements from Indian cities. It combines Python data-analysis exercises with a FastAPI backend and a Next.js dashboard.
 
-The dashboard supports city and date lookup, AQI categories and health guidance, pollutant readings, city summaries and comparisons, and a historical AQI chart. It uses the data bundled with this repository; it does not provide live air-quality readings.
+The dashboard supports city and date lookup, AQI categories and health guidance, pollutant readings, city summaries and comparisons, and a historical AQI chart. City choices and selectable calendar dates come from the bundled dataset; it does not provide live air-quality readings.
 
 ## How it works
 
@@ -80,6 +80,7 @@ The root `vercel.json` configures two services in one Vercel project: the Next.j
 | --- | --- |
 | `GET /api/health` | Check that the API is running. |
 | `GET /api/cities` | List cities with available AQI data. |
+| `GET /api/dates?city=Delhi` | List recorded dates for a city. |
 | `GET /api/aqi?city=Delhi&date=2019-05-01` | Get a city's AQI, category, advice, and pollutant readings for a date. |
 | `GET /api/summary?city=Delhi` | Get full-dataset city statistics. |
 | `GET /api/history?city=Delhi&limit=120&through=2019-05-01` | Get recent AQI readings on or before an optional date. |
