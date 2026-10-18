@@ -110,12 +110,13 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!report) return;
     const selectedCity = report.city;
+    const selectedDate = report.date;
 
     async function loadHistory() {
       setHistoryLoading(true);
       setHistoryError("");
       try {
-        const params = new URLSearchParams({ city: selectedCity, limit: "120", through: report.date });
+        const params = new URLSearchParams({ city: selectedCity, limit: "120", through: selectedDate });
         const response = await fetch(`${apiBaseUrl}/api/history?${params}`);
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.detail ?? "Could not load history.");
