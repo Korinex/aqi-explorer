@@ -66,9 +66,13 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. The frontend defaults to `http://127.0.0.1:8000` for its API URL. To change it, copy `client/.env.example` to `client/.env.local` and set `NEXT_PUBLIC_API_BASE_URL`.
+Open `http://localhost:3000`. To connect the frontend to the local API on port 8000, copy `client/.env.example` to `client/.env.local`; change `NEXT_PUBLIC_API_BASE_URL` there if your API uses another URL.
 
 If PowerShell blocks the `npm.ps1` script, use `npm.cmd` in its place (for example, `npm.cmd install` and `npm.cmd run dev`).
+
+## Deploy on Vercel
+
+The root `vercel.json` configures two services in one Vercel project: the Next.js dashboard in `client/` and the FastAPI backend in `server/`. The backend service uses the repository root so its runtime can access the shared `src/` package and `data/` dataset, with `server/app/main.py` as its entrypoint. Requests under `/api/` are routed to the backend; all other requests are routed to the dashboard. In production, the browser calls `/api/...` on the same domain, so no API URL environment variable is needed. `NEXT_PUBLIC_API_BASE_URL` remains available for local development when the frontend and backend run on different ports.
 
 ## API endpoints
 
