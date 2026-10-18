@@ -299,7 +299,10 @@ export default function DashboardPage() {
         </p>
       </section>
 
-      <section className="search-panel scroll-reveal" aria-labelledby="lookup-title">
+      <section
+        className={`search-panel scroll-reveal${calendarOpen ? " calendar-open" : ""}`}
+        aria-labelledby="lookup-title"
+      >
         <div className="panel-heading">
           <div>
             <span className="section-label">01 / LOOKUP</span>
