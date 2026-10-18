@@ -128,7 +128,10 @@ footer { border-top: 1px solid var(--line); display: flex; justify-content: spac
 .date-picker-trigger:disabled { cursor: wait; opacity: .65; }
 .calendar-popover { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(24,33,30,.16); left: 0; padding: 12px; position: absolute; top: calc(100% + 8px); width: 280px; z-index: 5; }
 .calendar-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 10px; }
-.calendar-header strong { font-size: 13px; }
+.calendar-selectors { display: flex; gap: 5px; }
+.calendar-select { background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--ink); cursor: pointer; font: 600 12px Manrope, sans-serif; padding: 6px 4px; }
+.calendar-select:hover { background: #e9eddf; border-color: var(--line); }
+.calendar-select:focus-visible { border-color: #668f63; outline: 2px solid #668f63; }
 .calendar-header button, .calendar-grid button { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--ink); cursor: pointer; display: flex; font: 600 12px Manrope, sans-serif; height: 32px; justify-content: center; padding: 0; width: 32px; }
 .calendar-header button { font-size: 20px; }
 .calendar-header button:disabled, .calendar-grid button:disabled { color: #bdc5ba; cursor: default; }

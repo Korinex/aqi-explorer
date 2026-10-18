@@ -253,6 +253,8 @@ export default function DashboardPage() {
   const firstWeekday = monthStart.getUTCDay();
   const availableMonths = [...new Set(availableDates.map((item) => item.slice(0, 7)))];
   const currentMonthIndex = availableMonths.indexOf(calendarMonth);
+  const availableYears = [...new Set(availableMonths.map((item) => item.slice(0, 4)))];
+  const monthsInSelectedYear = availableMonths.filter((item) => item.startsWith(`${year}-`));
   const firstAvailableMonth = availableMonths[0] ?? calendarMonth;
   const lastAvailableMonth = availableMonths[availableMonths.length - 1] ?? calendarMonth;
   const availableDateSet = new Set(availableDates);
@@ -268,6 +270,12 @@ export default function DashboardPage() {
   function moveCalendarMonth(offset: number) {
     const nextMonth = availableMonths[currentMonthIndex + offset];
     if (nextMonth) setCalendarMonth(nextMonth);
+  }
+
+  function selectCalendarYear(selectedYear: string) {
+    const monthsInYear = availableMonths.filter((item) => item.startsWith(`${selectedYear}-`));
+    const selectedMonth = monthsInYear.find((item) => item >= calendarMonth) ?? monthsInYear[monthsInYear.length - 1];
+    if (selectedMonth) setCalendarMonth(selectedMonth);
   }
 
   return (
@@ -324,7 +332,26 @@ export default function DashboardPage() {
             {calendarOpen && <div className="calendar-popover" role="dialog" aria-label="Choose an available dataset date">
               <div className="calendar-header">
                 <button type="button" aria-label="Previous month" disabled={calendarMonth <= firstAvailableMonth} onClick={() => moveCalendarMonth(-1)}>‹</button>
-                <strong>{monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" })}</strong>
+                <div className="calendar-selectors">
+                  <select
+                    className="calendar-select"
+                    aria-label="Select year"
+                    value={year}
+                    onChange={(event) => selectCalendarYear(event.target.value)}
+                  >
+                    {availableYears.map((availableYear) => <option key={availableYear} value={availableYear}>{availableYear}</option>)}
+                  </select>
+                  <select
+                    className="calendar-select"
+                    aria-label="Select month"
+                    value={calendarMonth}
+                    onChange={(event) => setCalendarMonth(event.target.value)}
+                  >
+                    {monthsInSelectedYear.map((availableMonth) => <option key={availableMonth} value={availableMonth}>
+                      {new Date(`${availableMonth}-01T00:00:00Z`).toLocaleDateString(undefined, { month: "long", timeZone: "UTC" })}
+                    </option>)}
+                  </select>
+                </div>
                 <button type="button" aria-label="Next month" disabled={calendarMonth >= lastAvailableMonth} onClick={() => moveCalendarMonth(1)}>›</button>
               </div>
               <div className="calendar-grid calendar-weekdays" aria-hidden="true">
