@@ -123,10 +123,11 @@ footer { border-top: 1px solid var(--line); display: flex; justify-content: spac
 .chart-tooltip-date { fill: #c9f277; font: 10px 'DM Mono', monospace; }
 .chart-tooltip-value { fill: #fff; font: 700 12px Manrope, sans-serif; }
 .scroll-reveal { opacity: 1; transform: none; }
+.search-panel.calendar-open { position: relative; z-index: 1000; }
 .date-picker-field { position: relative; }
 .date-picker-trigger { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); cursor: pointer; font: 600 14px Manrope, sans-serif; min-height: 48px; padding: 14px; text-align: left; }
 .date-picker-trigger:disabled { cursor: wait; opacity: .65; }
-.calendar-popover { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(24,33,30,.16); left: 0; padding: 12px; position: absolute; top: calc(100% + 8px); width: 280px; z-index: 5; }
+.calendar-popover { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(24,33,30,.16); left: 0; padding: 12px; position: absolute; top: calc(100% + 8px); width: 280px; z-index: 1001; }
 .calendar-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 10px; }
 .calendar-selectors { display: flex; gap: 5px; }
 .calendar-select { background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--ink); cursor: pointer; font: 600 12px Manrope, sans-serif; padding: 6px 4px; }
