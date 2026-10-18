@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type AqiReport = {
   aqi: number;
@@ -61,6 +62,9 @@ export default function DashboardPage() {
   const [datesError, setDatesError] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState("2019-05");
+  const datePickerTriggerRef = useRef<HTMLButtonElement>(null);
+  const calendarPopoverRef = useRef<HTMLDivElement>(null);
+  const [calendarPosition, setCalendarPosition] = useState<{ top: number; left: number } | null>(null);
   const [report, setReport] = useState<AqiReport | null>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
@@ -75,6 +79,37 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const selectedCategoryIndex = report ? aqiCategories.indexOf(report.category) : -1;
+
+  useEffect(() => {
+    if (!calendarOpen) return;
+
+    function updateCalendarPosition() {
+      const trigger = datePickerTriggerRef.current;
+      if (!trigger) return;
+
+      const triggerRect = trigger.getBoundingClientRect();
+      const popoverRect = calendarPopoverRef.current?.getBoundingClientRect();
+      const popoverWidth = popoverRect?.width ?? 280;
+      const popoverHeight = popoverRect?.height ?? 280;
+      const top = triggerRect.bottom + popoverHeight + 8 <= window.innerHeight
+        ? triggerRect.bottom + 8
+        : Math.max(8, triggerRect.top - popoverHeight - 8);
+      const left = Math.min(
+        Math.max(8, triggerRect.left),
+        window.innerWidth - popoverWidth - 8
+      );
+
+      setCalendarPosition({ top, left });
+    }
+
+    updateCalendarPosition();
+    window.addEventListener("resize", updateCalendarPosition);
+    window.addEventListener("scroll", updateCalendarPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateCalendarPosition);
+      window.removeEventListener("scroll", updateCalendarPosition, true);
+    };
+  }, [calendarMonth, calendarOpen]);
 
   useEffect(() => {
     const elements = document.querySelectorAll<HTMLElement>(".scroll-reveal");
@@ -299,10 +334,7 @@ export default function DashboardPage() {
         </p>
       </section>
 
-      <section
-        className={`search-panel scroll-reveal${calendarOpen ? " calendar-open" : ""}`}
-        aria-labelledby="lookup-title"
-      >
+      <section className="search-panel scroll-reveal" aria-labelledby="lookup-title">
         <div className="panel-heading">
           <div>
             <span className="section-label">01 / LOOKUP</span>
@@ -325,14 +357,30 @@ export default function DashboardPage() {
             <button
               type="button"
               className="date-picker-trigger"
+              ref={datePickerTriggerRef}
               aria-haspopup="dialog"
               aria-expanded={calendarOpen}
               disabled={datesLoading || availableDates.length === 0}
-              onClick={() => setCalendarOpen(!calendarOpen)}
+              onClick={() => {
+                setCalendarPosition(null);
+                setCalendarOpen(!calendarOpen);
+              }}
             >
               {datesLoading ? "Loading dates..." : formattedDate}
             </button>
-            {calendarOpen && <div className="calendar-popover" role="dialog" aria-label="Choose an available dataset date">
+            {calendarOpen && typeof document !== "undefined" && createPortal(
+              <div
+                ref={calendarPopoverRef}
+                className="calendar-popover"
+                role="dialog"
+                aria-label="Choose an available dataset date"
+                style={{
+                  position: "fixed",
+                  top: calendarPosition?.top ?? 8,
+                  left: calendarPosition?.left ?? 8,
+                  visibility: calendarPosition ? "visible" : "hidden",
+                }}
+              >
               <div className="calendar-header">
                 <button type="button" aria-label="Previous month" disabled={calendarMonth <= firstAvailableMonth} onClick={() => moveCalendarMonth(-1)}>‹</button>
                 <div className="calendar-selectors">
@@ -379,7 +427,9 @@ export default function DashboardPage() {
                   >{index + 1}</button>;
                 })}
               </div>
-            </div>}
+              </div>,
+              document.body
+            )}
           </label>
           <button type="submit" className="primary-button" disabled={loading || datesLoading || cities.length === 0 || !date}>
             {loading ? "Loading..." : "View report"} <span>↗</span>
